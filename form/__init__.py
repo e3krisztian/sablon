@@ -35,6 +35,7 @@ COMMENT = 'comment'
 
 Token = namedtuple('Token', 'type value')
 
+
 def tokenize(line):
     for match in RE_TOKENIZE(line):
         tokens = [
@@ -80,13 +81,13 @@ class StateText(State):
     def flush(self):
         multiline_code = sum(1 for t in self.fragments if t.type == TEXT) > 1
         if multiline_code:
-            self.compiler.emit('__text(')
+            self.compiler.emit('__output(')
             self.compiler.indent()
             self._flush('{} +')
             self.compiler.emit('"")')
             self.compiler.dedent()
         else:
-            self._flush('__text({})')
+            self._flush('__output({})')
 
     def _flush(self, template):
         for t in self.fragments:
@@ -120,7 +121,7 @@ class StateCode(State):
         code = ' '.join(self.fragments)
         if self.expression:
             if code:
-                self.compiler.emit('__expr({})'.format(code))
+                self.compiler.emit('__output_value({})'.format(code))
         else:
             assert code
             self.compiler.emit(code + ':')
@@ -133,20 +134,34 @@ class StateCode(State):
         self.expression = True
 
 
-class Compiler:
-    def __init__(self):
+class DocCompiler:
+
+    # Override these string constants in subclasses to escape expression values
+    # See html module for an example
+    # These strings must not contain new lines!
+
+    DEFINE_WRAPS = '__unicode = u"".__class__'
+    WRAP_EXPR = '__unicode'
+    WRAP_RESULT = ''
+
+    # implementation
+    #
+    # generate function source from doc-string using a finite state-machine
+    # with one state for text and one for code (within {})
+
+    def reset(self, minindent):
         self.result = []
         self.state = StateText(self)
-        self.indentation = 1
+        self.indentation = self.minindent = minindent
         self.lineno = 0
 
     def enter(self, state):
         self.state.flush()
         self.state = state
 
-    def process(self, line):
+    def process(self, raw_line):
         self.lineno += 1
-        line = line.strip()
+        line = raw_line.strip()
         if line.startswith('# ') or line == '#':
             self.state.process_newline('\n')
             self.process_line(line[2:])
@@ -156,7 +171,7 @@ class Compiler:
             raise SyntaxError(
                 'Invalid template line {} - missing space after {}?'
                 .format(self.lineno, line[0])
-                + '\n' + line)
+                + '\n' + raw_line)
         else:
             self.state.process_comment(line)
 
@@ -170,14 +185,45 @@ class Compiler:
     def indent(self):
         self.indentation += 1
     def dedent(self):
-        assert self.indentation > 1
+        assert self.indentation > self.minindent
         self.indentation -= 1
     def emit(self, line):
         self.result.append(' ' * 4 * self.indentation + line)
 
-    def get_source(self):
+    def get_source(self, fun):
+        self.reset(minindent=2)
+        context = dict(
+            func_name=fun.__name__,
+            signature=str(signature(fun)),
+            define_wraps=self.DEFINE_WRAPS,
+            wrap_expr=self.WRAP_EXPR,
+            wrap_result=self.WRAP_RESULT)
+        self.result = [DEFUN.format(**context)]
+        for line in fun.__doc__.splitlines():
+            self.process(line)
         self.state.flush()
+        self.result.append(ENDFUN.format(**context))
         return '\n'.join(self.result)
+
+    def compile(self, fun):
+        '''
+            Create a function that return a string defined by the doc-string.
+
+            The returned function will have the same signature as the input.
+        '''
+        source = self.get_source(fun)
+        env = {}
+        try:
+            exec(source, fun.__globals__, env)
+        except SyntaxError as e:
+            context = (inspect.getsourcefile(fun), e.lineno, e.offset, source)
+            raise SyntaxError(e.msg, context)
+        form_fun = env[fun.__name__]
+        form_fun.source = source
+        form_fun.__name__ = fun.__name__
+        form_fun.__doc__ = fun.__doc__
+        form_fun.__module__ = '{}/{}'.format(fun.__module__, fun.__name__)
+        return form_fun
 
 
 DEFUN = '''\
@@ -185,31 +231,24 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
-def {}{}:
-    __fragments = []
-    __text = __fragments.append
-    __unicode = u''.__class__
-    def __expr(__value):
-       # ignore None to be able to define & use local functions
-       if __value is not None:
-           __text(__unicode(__value))
-    # - - - - - - - - - - - - - -
+def __make_form():
+    {define_wraps}
+    def {func_name}{signature}:
+        __fragments = []
+        __output = __fragments.append
+        def __output_value(__value):
+           # ignore None to be able to define & use local functions
+           if __value is not None:
+               __output({wrap_expr}(__value))
+        # - - - - - - - - - - - - - -\
 '''
-ENDFUN = '''
-    # - - - - - - - - - - - - - -
-    return u''.join(__fragments)
+ENDFUN = '''\
+        # - - - - - - - - - - - - - -
+        return {wrap_result}(u''.join(__fragments))
+    return {func_name}
+
+{func_name} = __make_form()
 '''
-
-
-def _compile_doc(f):
-    c = Compiler()
-    for line in f.__doc__.splitlines():
-        c.process(line)
-    source = (
-        DEFUN.format(f.__name__, str(signature(f))) +
-        c.get_source() +
-        ENDFUN)
-    return source
 
 
 def form(fun):
@@ -218,11 +257,4 @@ def form(fun):
 
         The returned function will have the same signature as the input.
     '''
-    source = _compile_doc(fun)
-    env = {}
-    exec(source, fun.__globals__, env)
-    form_fun = env[fun.__name__]
-    form_fun.source = source
-    form_fun.__doc__ = fun.__doc__
-    form_fun.__module__ = '{}/{}'.format(fun.__module__, fun.__name__)
-    return form_fun
+    return DocCompiler().compile(fun)
