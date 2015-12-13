@@ -178,6 +178,7 @@ def binary_expanded(n):
     # }{:}
 
         choosing line start characters do matter outside code blocks
+
     = {n % 2}
     '''
 
