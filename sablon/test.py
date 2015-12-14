@@ -160,7 +160,8 @@ class Test_sablon(unittest.TestCase):
 @m.sablon
 def binary(n):
     '''
-    = {if n // 2 :}{binary(n // 2)}{:}{n % 2}
+    = {if n > 1:}{binary(n // 2)}{:}
+    = {n % 2}
     '''
 
 
@@ -169,7 +170,7 @@ def binary_expanded(n):
     # same as `binary` above but with some comments
     # and spread over multiple lines
     '''
-    = {if n // 2 :}{
+    = {if n > 1:}{
 
         within code blocks whitespaces (including newlines) are ignored
         so it does not matter if we start the line with # or =
