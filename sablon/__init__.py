@@ -218,12 +218,12 @@ class DocCompiler:
         except SyntaxError as e:
             context = (inspect.getsourcefile(fun), e.lineno, e.offset, source)
             raise SyntaxError(e.msg, context)
-        form_fun = env[fun.__name__]
-        form_fun.source = source
-        form_fun.__name__ = fun.__name__
-        form_fun.__doc__ = fun.__doc__
-        form_fun.__module__ = '{}/{}'.format(fun.__module__, fun.__name__)
-        return form_fun
+        sablon_fun = env[fun.__name__]
+        sablon_fun.source = source
+        sablon_fun.__name__ = fun.__name__
+        sablon_fun.__doc__ = fun.__doc__
+        sablon_fun.__module__ = '{}/{}'.format(fun.__module__, fun.__name__)
+        return sablon_fun
 
 
 DEFUN = '''\
@@ -231,7 +231,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
-def __make_form():
+def __make_sablon():
     {define_wraps}
     def {func_name}{signature}:
         __fragments = []
@@ -247,11 +247,11 @@ ENDFUN = '''\
         return {wrap_result}(u''.join(__fragments))
     return {func_name}
 
-{func_name} = __make_form()
+{func_name} = __make_sablon()
 '''
 
 
-def form(fun):
+def sablon(fun):
     '''
         Create a function that return a string defined by the doc-string.
 

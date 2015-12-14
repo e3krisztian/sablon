@@ -31,16 +31,16 @@ def wrap(obj):
     return HTML(unicode(obj).translate(HTML_ESCAPE_MAP))
 
 
-class DocCompiler(DocCompiler):
-    DEFINE_WRAPS = 'from form.html import HTML as __html, wrap as __html_safe'
+class HtmlDocCompiler(DocCompiler):
+    DEFINE_WRAPS = 'from sablon.html import HTML as __html, wrap as __html_safe'
     WRAP_EXPR = '__html_safe'
     WRAP_RESULT = '__html'
 
 
-def form(fun):
+def html_sablon(fun):
     '''
         Create a function that return a string defined by the doc-string.
 
         The returned function will have the same signature as the input.
     '''
-    return DocCompiler().compile(fun)
+    return HtmlDocCompiler().compile(fun)

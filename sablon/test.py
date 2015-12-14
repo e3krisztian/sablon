@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 import unittest
-import form as m
+import sablon as m
 
 
 class Test_tokenize(unittest.TestCase):
@@ -47,22 +47,22 @@ class Test_tokenize(unittest.TestCase):
             'conditional: {if cond:} substitution {:else:} alternative {:}')
 
 
-class Test_form(unittest.TestCase):
+class Test_sablon(unittest.TestCase):
 
     def test_empty(self):
-        @m.form
+        @m.sablon
         def f():
             ''
         self.assertEqual('', f())
 
     def test_empty_with_comment(self):
-        @m.form
+        @m.sablon
         def f():
             'empty text - this line is a comment'
         self.assertEqual('', f())
 
     def test_text(self):
-        @m.form
+        @m.sablon
         def f():
             '''
             # text on a new line
@@ -70,7 +70,7 @@ class Test_form(unittest.TestCase):
         self.assertEqual('\ntext on a new line', f())
 
     def test_skipping_newline_before_text(self):
-        @m.form
+        @m.sablon
         def f():
             '''
             # line
@@ -79,7 +79,7 @@ class Test_form(unittest.TestCase):
         self.assertEqual('\nline continuation', f())
 
     def test_one_word_on_two_lines(self):
-        @m.form
+        @m.sablon
         def f():
             '''
             = wo
@@ -88,7 +88,7 @@ class Test_form(unittest.TestCase):
         self.assertEqual('word', f())
 
     def test_lines(self):
-        @m.form
+        @m.sablon
         def f():
             '''
             # two
@@ -98,7 +98,7 @@ class Test_form(unittest.TestCase):
         self.assertEqual('\ntwo\nlines', f())
 
     def test_insert_expression(self):
-        @m.form
+        @m.sablon
         def inc(n):
             '''
             = {n} + 1 = {n + 1}
@@ -126,22 +126,22 @@ class Test_form(unittest.TestCase):
 
     def test_methods(self):
         class SomeView:
-            @m.form
+            @m.sablon
             def one(self):
                 '= 1'
-            @m.form
+            @m.sablon
             def two(self):
                 '= ({self.one()} + {self.one()})'
-            @m.form
+            @m.sablon
             def five(self):
                 '= ({self.two()} + {self.two()} + {self.one()})'
         self.assertEqual('((1 + 1) + (1 + 1) + 1)', SomeView().five())
 
-    def test_local_forms(self):
-        @m.form
+    def test_macros(self):
+        @m.sablon
         def f(str):
             '''
-                r is a local function that reverses a string
+                r is a local macro that reverses a string
 
             = {def r(s):}{''.join(reversed(s))}{:}
 
@@ -157,14 +157,14 @@ class Test_form(unittest.TestCase):
 # Alternatively they can call each other through an object
 # e.g. through self: see test_methods above
 
-@m.form
+@m.sablon
 def binary(n):
     '''
     = {if n // 2 :}{binary(n // 2)}{:}{n % 2}
     '''
 
 
-@m.form
+@m.sablon
 def binary_expanded(n):
     # same as `binary` above but with some comments
     # and spread over multiple lines
