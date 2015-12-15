@@ -23,22 +23,22 @@ def cell(value):
 @html_sablon
 def html_row(values):
     '''
-    = <tr>
+    # <tr>
     = {for value in values:}
     # {indent(cell(value))}
     = {:}
-    # </tr>
+    = </tr>
     '''
 
 
 @html_sablon
 def html_table(rows):
     '''
-    = <table>
+    # <table>
     = {for row in rows:}
     # {indent(html_row(row))}
     = {:}
-    # </table>
+    = </table>
     '''
 
 
@@ -50,18 +50,18 @@ def html_table_with_macros(rows):
     = {:}
 
     = {def html_row(values):}
-    =   <tr>
+    #   <tr>
     = {for value in values:}
     # {cell(value)}
     = {:}
-    #   </tr>
+    =   </tr>
     = {:}
 
-    = <table>
+    # <table>
     = {for row in rows:}
     # {html_row(row)}
     = {:}
-    # </table>
+    = </table>
     '''
 
 

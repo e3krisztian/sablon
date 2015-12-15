@@ -65,18 +65,18 @@ class Test_sablon(unittest.TestCase):
         @m.sablon
         def f():
             '''
-            # text on a new line
+            # complete line
             '''
-        self.assertEqual('\ntext on a new line', f())
+        self.assertEqual('complete line\n', f())
 
     def test_skipping_newline_before_text(self):
         @m.sablon
         def f():
             '''
-            # line
-            =  continuation
+            = line
+            #  continuation
             '''
-        self.assertEqual('\nline continuation', f())
+        self.assertEqual('line continuation\n', f())
 
     def test_one_word_on_two_lines(self):
         @m.sablon
@@ -95,7 +95,7 @@ class Test_sablon(unittest.TestCase):
             comment
             # lines
             '''
-        self.assertEqual('\ntwo\nlines', f())
+        self.assertEqual('two\nlines\n', f())
 
     def test_insert_expression(self):
         @m.sablon
@@ -176,7 +176,7 @@ def binary_expanded(n):
         so it does not matter if we start the line with # or =
 
     #     binary(n // 2)
-    # }{:}
+    = }{:}
 
         choosing line start characters do matter outside code blocks
 

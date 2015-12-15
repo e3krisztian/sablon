@@ -163,8 +163,8 @@ class DocCompiler:
         self.lineno += 1
         line = raw_line.strip()
         if line.startswith('# ') or line == '#':
-            self.state.process_newline('\n')
             self.process_line(line[2:])
+            self.state.process_newline('\n')
         elif line.startswith('= ') or line == '=':
             self.process_line(line[2:])
         elif line and line[:1] in '#=':
